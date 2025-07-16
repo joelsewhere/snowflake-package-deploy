@@ -1,0 +1,4 @@
+default_connection_name = "deploy"
+
+[connections]
+[connections.deploy]

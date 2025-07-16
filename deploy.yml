@@ -4,11 +4,11 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'packages/**'
+      - 'package_dir/**'
 
 jobs:
   version:
-    name: "Check Snowflake CLI version"
+    name: "Deploy"
     runs-on: ubuntu-latest
     environment: snowflake
     steps:
