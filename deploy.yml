@@ -1,0 +1,62 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'packages/**'
+
+jobs:
+  version:
+    name: "Check Snowflake CLI version"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.12.7]
+    environment: snowflake
+    steps:
+    
+      # Checkout repository in order
+      # to access the .toml config 
+      # file used by snowflake-cli
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          
+      # Python is used to
+      # find the built .zip file and 
+      # standardize the filename.
+      - name: Install Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Build package .zip file
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install setuptools wheel
+          python package/setup.py bdist --format zip
+          
+      - name: Standardize the filename of the zipfile
+        run: python bin/handle_zip.py
+        
+      # Install snowflake cli
+      - uses: snowflakedb/snowflake-cli-action@v1.5
+        with:
+          default-config-file-path: "snowflake-config.toml"
+          
+      # Push the package to snowflake
+      - name: Execute Snowflake CLI command
+        env:
+          SNOWFLAKE_CONNECTIONS_DEPLOY_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_CONNECTIONS_DEPLOY_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_CONNECTIONS_DEPLOY_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_CONNECTIONS_DEPLOY_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_CONNECTIONS_DEPLOY_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+          SNOWFLAKE_CONNECTIONS_DEPLOY_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+        run: |
+          snow --help
+          snow connection test
+          snow snowpark package upload -f dist/package.zip -s staging_name --overwrite --role accountadmin
