@@ -43,4 +43,4 @@ jobs:
         run: |
           snow --help
           snow connection test
-          snow snowpark package upload -f dist/package.zip -s staging_name --overwrite --role accountadmin
+          snow snowpark package upload -f package.zip -s staging_name --overwrite --role accountadmin
